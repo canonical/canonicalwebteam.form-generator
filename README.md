@@ -1,12 +1,25 @@
 # canonicalwebteam.form_generator
 
-Flask extension that generates unique HTML forms based on `json` data.
+Flask extension that generates unique HTML forms based on `json` data and registers them to URLs.
+
+## Install
+
+Install the project with pip: `pip install canonicalwebteam.form-generator`
+
+You can then initialize it by passing a Flask app instance and load the forms:
+
+```
+from canonicalwebteam.form_generator import FormGenerator
+
+form_loader = FormGenerator(app)
+form_loader.load_forms()
+```
 
 ## Local development
 
 ### Running the project
 
-To use this module locally on a [dotrun](https://github.com/canonical/dotrun/) project:
+This guide assumes you are using [dotrun](https://github.com/canonical/dotrun/).
 
 Include a relative path to the project in your `requirements.txt` (this example assumes both project exist in the same dir):
 `-e ../form-generator`
