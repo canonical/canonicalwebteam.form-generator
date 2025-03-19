@@ -1,0 +1,48 @@
+name: PR checks
+
+on: pull_request
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: |
+        pip3 install --upgrade setuptools==65.7.0 pip
+        pip3 install wheel twine
+
+    - name: Build package
+      run: python3 setup.py sdist bdist_wheel
+
+    - name: Twine check
+      run: python3 -m twine check dist/*
+
+  lint-python:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: pip3 install tox
+
+    - name: Lint Python
+      run: tox -e lint
+
+  check-inclusive-naming:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check inclusive naming
+        uses: canonical-web-and-design/inclusive-naming@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
+          fail-on-error: true
+
