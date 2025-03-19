@@ -1,80 +1,85 @@
 import json
 import flask
-import jinja2
-from functools import wraps
 from pathlib import Path
 
 
 class FormGenerator:
-    def __init__(self, app):
+    def __init__(self, app, form_template_path):
         """
         Initialize with a Flask app instance.
 
         :param app: Flask app instance
+        :param form_template_path: Path to the form template
         """
         self.app = app
+        self.form_template_path = form_template_path
         self.templates_folder = Path(app.root_path).parent / "templates"
+        self.form_metadata = {}
+
+        # Register Jinja function globally
+        self.app.jinja_env.globals["load_form"] = self.load_form
 
     def load_forms(self):
         """
         Finds all 'form-data.json' files within the 'templates' dir and
-        registers form routes.
+        stores limited metadata.
         """
         for file_path in self.templates_folder.rglob("form-data.json"):
             with open(file_path) as forms_json:
                 data = json.load(forms_json)
-                self._register_forms(data["form"])
+                self._store_metadata(file_path, data["form"])
 
-    def _register_forms(self, forms_data: dict):
+    def _store_metadata(self, file_path: Path, forms_data: dict):
         """
-        Registers routes based on form-data.json contents.
+        Stores metadata ('file_path' and 'template') about forms under their
+        respective paths.
         """
         for path, form in forms_data.items():
-            self._register_route(path, form)
+            self.form_metadata[path] = {
+                "file_path": file_path,
+                "template": form["templatePath"].rsplit(".", 1)[
+                    0
+                ],  # Remove file extension
+            }
 
-            # Register child paths if any
             for child_path in form.get("childrenPaths", []):
                 processed_path = self._process_child_path(child_path)
-                self._register_route(processed_path, form, child=True)
+                self.form_metadata[processed_path] = {
+                    "file_path": file_path,
+                    "template": form["templatePath"].rsplit(".", 1)[0],
+                }
 
-    def _register_route(self, path: str, form: dict, child: bool = False):
+    def load_form(self, form_path: Path) -> str:
         """
-        Registers a _render_form func to a specific route and passes
-        in the form data.
+        Jinja function that return a html string form.
+        
+        Usage: {{ load_form('/aws') }}
         """
-        template_path = (
-            form["templatePath"].split(".")[0] if not child else path
+        form_info = self.form_metadata.get(form_path)
+        # ADD ERROR HANDLING
+
+        form_json = self._load_form_json(form_info["file_path"]).get(form_path)
+        # ADD ERROR HANDLING
+
+        return flask.render_template(
+            self.form_template_path,
+            fieldsets=form_json["fieldsets"],
+            formData=form_json["formData"],
+            isModal=form_json.get("isModal"),
+            modalId=form_json.get("modalId"),
+            path=form_path,
         )
-        self.app.add_url_rule(
-            path,
-            view_func=self._render_form(form, template_path, child),
-            endpoint=path,
-        )
 
-    def _render_form(
-        self, form: dict, template_path: str, child: bool = False
-    ):
+    def _load_form_json(self, file_path: Path) -> dict:
         """
-        Returns a function to render the form template.
+        Loads form data from a JSON file.
         """
-
-        @wraps(self._render_form)
-        def wrapper_func():
-            try:
-                return flask.render_template(
-                    f"{template_path}.html",
-                    fieldsets=form["fieldsets"],
-                    formData=form["formData"],
-                    isModal=form.get("isModal"),
-                    modalId=form.get("modalId"),
-                    path=template_path if child else None,
-                )
-            except jinja2.exceptions.TemplateNotFound:
-                flask.abort(
-                    404, description=f"Template {template_path} not found."
-                )
-
-        return wrapper_func
+        try:
+            with open(file_path) as forms_json:
+                return json.load(forms_json).get("form", {})
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {}
+            # ADD ERROR HANDLING
 
     @staticmethod
     def _process_child_path(child_path: str) -> str:
