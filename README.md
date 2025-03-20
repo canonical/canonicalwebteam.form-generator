@@ -2,18 +2,27 @@
 
 Flask extension that generates unique HTML forms based on `json` data and registers them to URLs.
 
-## Install
+## Installation and usage
 
 Install the project with pip: `pip install canonicalwebteam.form-generator`
 
-You can then initialize it by passing a Flask app instance and load the forms:
+You can then initialize it by passing a Flask app instance and path to the form template, and then load the forms:
 
 ```
 from canonicalwebteam.form_generator import FormGenerator
 
+form_template_path = "path/to/form-template.html"
 form_loader = FormGenerator(app)
 form_loader.load_forms()
 ```
+
+You can then call the `load_forms` function from within a Jinja template. Providing a path for the `form-data.json` (required) and a formId (optional):
+
+```
+{{ load_form('/aws', 1234) }}
+```
+
+See the [full guide](https://webteam.canonical.com/practices/automated-form-builder) for more information.
 
 ## Local development
 
