@@ -12,7 +12,7 @@ You can then initialize it by passing a Flask app instance and path to the form 
 from canonicalwebteam.form_generator import FormGenerator
 
 form_template_path = "path/to/form-template.html"
-form_loader = FormGenerator(app)
+form_loader = FormGenerator(app, form_template_path)
 form_loader.load_forms()
 ```
 
