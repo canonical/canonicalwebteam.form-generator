@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch, mock_open
 from pathlib import Path
 from flask import Flask
 from canonicalwebteam.form_generator.app import FormGenerator
+from json import JSONDecodeError
 
 
 class TestFormGenerator(unittest.TestCase):
@@ -43,6 +44,100 @@ class TestFormGenerator(unittest.TestCase):
             form_generator.form_metadata["test_path"]["template"], "test"
         )
 
+    @patch("canonicalwebteam.form_generator.app.Path.rglob")
+    @patch("canonicalwebteam.form_generator.app.open", side_effect=JSONDecodeError("Invalid JSON", "", 0))
+    @patch("canonicalwebteam.form_generator.app.abort")
+    def test_load_forms_json_decode_error(self, mock_abort, mock_open, mock_rglob):
+        """
+        Test load_forms handling of JSONDecodeError.
+        """
+        mock_rglob.return_value = [Path("path/to/invalid.json")]
+        form_generator = FormGenerator(self.app, self.form_template_path)
+
+        form_generator.load_forms()
+
+        mock_abort.assert_called_once()
+        self.assertEqual(mock_abort.call_args[0][0], 500)
+        self.assertIn(
+            "Error processing form data from",
+            mock_abort.call_args[1]["description"],
+        )
+        self.assertIn(
+            "Invalid JSON",
+            mock_abort.call_args[1]["description"],
+        )
+
+    @patch("canonicalwebteam.form_generator.app.Path.rglob")
+    @patch("canonicalwebteam.form_generator.app.open", side_effect=FileNotFoundError("File not found"))
+    @patch("canonicalwebteam.form_generator.app.abort")
+    def test_load_forms_file_not_found(self, mock_abort, mock_open, mock_rglob):
+        """
+        Test load_forms handling of FileNotFoundError.
+        """
+        mock_rglob.return_value = [Path("path/to/missing-file.json")]
+        form_generator = FormGenerator(self.app, self.form_template_path)
+
+        form_generator.load_forms()
+
+        mock_abort.assert_called_once()
+        self.assertEqual(mock_abort.call_args[0][0], 500)
+        self.assertIn(
+            "Error processing form data from",
+            mock_abort.call_args[1]["description"],
+        )
+        self.assertIn(
+            "File not found",
+            mock_abort.call_args[1]["description"],
+        )
+
+    @patch("canonicalwebteam.form_generator.app.Path.rglob")
+    @patch("canonicalwebteam.form_generator.app.open", side_effect=Exception("Unexpected error"))
+    @patch("canonicalwebteam.form_generator.app.abort")
+    def test_load_forms_generic_exception(self, mock_abort, mock_open, mock_rglob):
+        """
+        Test load_forms handling of generic exceptions.
+        """
+        mock_rglob.return_value = [Path("path/to/problematic-file.json")]
+        form_generator = FormGenerator(self.app, self.form_template_path)
+
+        form_generator.load_forms()
+
+        mock_abort.assert_called_once()
+        self.assertEqual(mock_abort.call_args[0][0], 500)
+        self.assertIn(
+            "Error processing form data from",
+            mock_abort.call_args[1]["description"],
+        )
+        self.assertIn(
+            "Unexpected error",
+            mock_abort.call_args[1]["description"],
+        )
+
+    @patch("canonicalwebteam.form_generator.app.Path.rglob")
+    @patch(
+        "canonicalwebteam.form_generator.app.open",
+        new_callable=mock_open,
+        read_data='{"invalid_key": {}}',
+    )
+    @patch("canonicalwebteam.form_generator.app.abort")
+    def test_load_forms_missing_form_key(
+        self, mock_abort, mock_open, mock_rglob
+    ):
+        """
+        Test load_forms with a JSON file missing the top level 'form' key.
+        """
+        mock_rglob.return_value = [Path("path/to/bad-form-data.json")]
+        form_generator = FormGenerator(self.app, self.form_template_path)
+
+        form_generator.load_forms()
+
+        mock_abort.assert_called_once()
+        self.assertEqual(mock_abort.call_args[0][0], 400)
+        self.assertIn(
+            "The JSON should have a 'form' key",
+            mock_abort.call_args[1]["description"],
+        )
+
     @patch("canonicalwebteam.form_generator.app.render_template")
     def test_load_form(self, mock_render_template):
         """
@@ -74,6 +169,35 @@ class TestFormGenerator(unittest.TestCase):
         self.assertEqual(kwargs["fieldsets"], [{"fields": []}])
         self.assertEqual(kwargs["formData"], {"title": "Test Form"})
         self.assertIsNone(kwargs["path"])
+
+    @patch("canonicalwebteam.form_generator.app.abort")
+    def test_load_form_missing_form_json(self, mock_abort):
+        """
+        Test load_form where form_json is not found for the given path.
+        """
+        form_generator = FormGenerator(self.app, self.form_template_path)
+        
+        form_generator.form_metadata = {
+            "/test": {
+                "file_path": "path/to/form.json",
+                "template": "test-template",
+            }
+        }
+        
+        form_generator._load_form_json = MagicMock(return_value={})
+        mock_abort.side_effect = Exception("form_json not found")
+        
+        form_path = "/test"
+        
+        with self.assertRaises(Exception):
+            form_generator.load_form(form_path)
+            
+        mock_abort.assert_called_once()
+        self.assertEqual(mock_abort.call_args[0][0], 404)
+        self.assertIn(
+            f"Form data not found for path: {form_path}",
+            mock_abort.call_args[1]["description"],
+        )
 
     def test_store_metadata(self):
         """
@@ -142,55 +266,70 @@ class TestFormGenerator(unittest.TestCase):
         "canonicalwebteam.form_generator.app.open",
         side_effect=FileNotFoundError,
     )
-    def test_load_form_json_file_not_found(self, mock_open):
+    @patch("canonicalwebteam.form_generator.app.abort")
+    def test_load_form_json_file_not_found(self, mock_abort, mock_open):
         """
         Test _load_form_json with a missing file.
         """
         form_generator = FormGenerator(self.app, self.form_template_path)
         file_path = Path("missing/form-data.json")
-
-        with self.assertRaises(Exception) as context:
+        
+        mock_abort.side_effect = Exception("JSON file not found")
+        
+        with self.assertRaises(Exception):
             form_generator._load_form_json(file_path)
-        self.assertIn("JSON file not found", str(context.exception))
+            
+        mock_abort.assert_called_once()
+        self.assertEqual(mock_abort.call_args[0][0], 404)
+        self.assertIn(
+            f"JSON file not found: {file_path}",
+            mock_abort.call_args[1]["description"],
+        )
 
     @patch(
         "canonicalwebteam.form_generator.app.open",
         new_callable=mock_open,
         read_data="invalid json",
     )
-    def test_load_form_json_invalid_json(self, mock_open):
+    @patch("canonicalwebteam.form_generator.app.abort")
+    def test_load_form_json_invalid_json(self, mock_abort, mock_open):
         """
         Test _load_form_json with invalid JSON.
         """
         form_generator = FormGenerator(self.app, self.form_template_path)
         file_path = Path("path/to/invalid.json")
-
-        with self.assertRaises(Exception) as context:
+        
+        mock_abort.side_effect = Exception("Invalid JSON format")
+        
+        with self.assertRaises(Exception):
             form_generator._load_form_json(file_path)
-        self.assertIn("Invalid JSON format", str(context.exception))
-
-    @patch("canonicalwebteam.form_generator.app.Path.rglob")
-    @patch(
-        "canonicalwebteam.form_generator.app.open",
-        new_callable=mock_open,
-        read_data='{"invalid_key": {}}',
-    )
-    @patch("canonicalwebteam.form_generator.app.abort")
-    def test_load_forms_missing_form_key(
-        self, mock_abort, mock_open, mock_rglob
-    ):
-        """
-        Test load_forms with a JSON file missing the top level 'form' key.
-        """
-        mock_rglob.return_value = [Path("path/to/bad-form-data.json")]
-        form_generator = FormGenerator(self.app, self.form_template_path)
-
-        form_generator.load_forms()
-
+            
         mock_abort.assert_called_once()
         self.assertEqual(mock_abort.call_args[0][0], 400)
         self.assertIn(
-            "The JSON should have a 'form' key",
+            f"Invalid JSON format: {file_path}",
+            mock_abort.call_args[1]["description"],
+        )
+
+    @patch("canonicalwebteam.form_generator.app.abort")
+    def test_load_form_missing_form_info(self, mock_abort):
+        """
+        Test load_form where form_info is None.
+        """
+        form_generator = FormGenerator(self.app, self.form_template_path)
+        form_generator.form_metadata = {}
+
+        mock_abort.side_effect = Exception("form_info is None")
+
+        form_path = "/test"
+
+        with self.assertRaises(Exception):
+            form_generator.load_form(form_path)
+
+        mock_abort.assert_called_once()
+        self.assertEqual(mock_abort.call_args[0][0], 404)
+        self.assertIn(
+            f"Form metadata not found for path: {form_path}",
             mock_abort.call_args[1]["description"],
         )
 
