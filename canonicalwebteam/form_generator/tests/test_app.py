@@ -45,9 +45,14 @@ class TestFormGenerator(unittest.TestCase):
         )
 
     @patch("canonicalwebteam.form_generator.app.Path.rglob")
-    @patch("canonicalwebteam.form_generator.app.open", side_effect=JSONDecodeError("Invalid JSON", "", 0))
+    @patch(
+        "canonicalwebteam.form_generator.app.open",
+        side_effect=JSONDecodeError("Invalid JSON", "", 0),
+    )
     @patch("canonicalwebteam.form_generator.app.abort")
-    def test_load_forms_json_decode_error(self, mock_abort, mock_open, mock_rglob):
+    def test_load_forms_json_decode_error(
+        self, mock_abort, mock_open, mock_rglob
+    ):
         """
         Test load_forms handling of JSONDecodeError.
         """
@@ -68,9 +73,14 @@ class TestFormGenerator(unittest.TestCase):
         )
 
     @patch("canonicalwebteam.form_generator.app.Path.rglob")
-    @patch("canonicalwebteam.form_generator.app.open", side_effect=FileNotFoundError("File not found"))
+    @patch(
+        "canonicalwebteam.form_generator.app.open",
+        side_effect=FileNotFoundError("File not found"),
+    )
     @patch("canonicalwebteam.form_generator.app.abort")
-    def test_load_forms_file_not_found(self, mock_abort, mock_open, mock_rglob):
+    def test_load_forms_file_not_found(
+        self, mock_abort, mock_open, mock_rglob
+    ):
         """
         Test load_forms handling of FileNotFoundError.
         """
@@ -91,9 +101,14 @@ class TestFormGenerator(unittest.TestCase):
         )
 
     @patch("canonicalwebteam.form_generator.app.Path.rglob")
-    @patch("canonicalwebteam.form_generator.app.open", side_effect=Exception("Unexpected error"))
+    @patch(
+        "canonicalwebteam.form_generator.app.open",
+        side_effect=Exception("Unexpected error"),
+    )
     @patch("canonicalwebteam.form_generator.app.abort")
-    def test_load_forms_generic_exception(self, mock_abort, mock_open, mock_rglob):
+    def test_load_forms_generic_exception(
+        self, mock_abort, mock_open, mock_rglob
+    ):
         """
         Test load_forms handling of generic exceptions.
         """
@@ -176,22 +191,22 @@ class TestFormGenerator(unittest.TestCase):
         Test load_form where form_json is not found for the given path.
         """
         form_generator = FormGenerator(self.app, self.form_template_path)
-        
+
         form_generator.form_metadata = {
             "/test": {
                 "file_path": "path/to/form.json",
                 "template": "test-template",
             }
         }
-        
+
         form_generator._load_form_json = MagicMock(return_value={})
         mock_abort.side_effect = Exception("form_json not found")
-        
+
         form_path = "/test"
-        
+
         with self.assertRaises(Exception):
             form_generator.load_form(form_path)
-            
+
         mock_abort.assert_called_once()
         self.assertEqual(mock_abort.call_args[0][0], 404)
         self.assertIn(
@@ -273,12 +288,12 @@ class TestFormGenerator(unittest.TestCase):
         """
         form_generator = FormGenerator(self.app, self.form_template_path)
         file_path = Path("missing/form-data.json")
-        
+
         mock_abort.side_effect = Exception("JSON file not found")
-        
+
         with self.assertRaises(Exception):
             form_generator._load_form_json(file_path)
-            
+
         mock_abort.assert_called_once()
         self.assertEqual(mock_abort.call_args[0][0], 404)
         self.assertIn(
@@ -298,12 +313,12 @@ class TestFormGenerator(unittest.TestCase):
         """
         form_generator = FormGenerator(self.app, self.form_template_path)
         file_path = Path("path/to/invalid.json")
-        
+
         mock_abort.side_effect = Exception("Invalid JSON format")
-        
+
         with self.assertRaises(Exception):
             form_generator._load_form_json(file_path)
-            
+
         mock_abort.assert_called_once()
         self.assertEqual(mock_abort.call_args[0][0], 400)
         self.assertIn(
