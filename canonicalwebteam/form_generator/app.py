@@ -1,6 +1,7 @@
 from json import load as json_load, JSONDecodeError
 from flask import abort, render_template
 from pathlib import Path
+from werkzeug.exceptions import HTTPException
 
 
 class FormGenerator:
@@ -36,7 +37,10 @@ class FormGenerator:
                                 f" the form data: {file_path}"
                             ),
                         )
-                    self._store_metadata(file_path, data["form"])
+                    else:
+                        self._store_metadata(file_path, data["form"])
+            except HTTPException:
+                raise
             except (
                 JSONDecodeError,
                 FileNotFoundError,

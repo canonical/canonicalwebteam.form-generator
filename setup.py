@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="canonicalwebteam.form-generator",
-    version="2.0.0",
+    version="2.0.1",
     author="Canonical webteam",
     author_email="webteam@canonical.com",
     url="https://github.com/canonical/canonicalwebteam.form-generator",
@@ -15,7 +15,5 @@ setup(
     packages=find_packages(),
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    install_requires=[
-        "Flask",
-    ],
+    install_requires=["Flask"],
 )

@@ -20,6 +20,18 @@ jobs:
     - name: Twine check
       run: python3 -m twine check dist/*
 
+  test-python:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: pip3 install tox
+
+    - name: Test Python
+      run: tox
+
   lint-python:
     runs-on: ubuntu-latest
 
