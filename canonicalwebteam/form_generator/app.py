@@ -82,7 +82,9 @@ class FormGenerator:
                     "is_child": True,
                 }
 
-    def load_form(self, form_path: Path, formId: int = None) -> str:
+    def load_form(
+        self, form_path: Path, formId: int = None, isModal: bool = None
+    ) -> str:
         """
         Jinja function that return a html string form.
 
@@ -106,11 +108,12 @@ class FormGenerator:
             )
 
         try:
+            is_modal = form_json.get("isModal") if isModal is None else isModal
             return render_template(
                 self.form_template_path,
                 fieldsets=form_json["fieldsets"],
                 formData=form_json["formData"],
-                isModal=form_json.get("isModal"),
+                isModal=is_modal,
                 modalId=form_json.get("modalId"),
                 path=form_path if is_child else None,
                 formId=formId,

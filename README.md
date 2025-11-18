@@ -16,10 +16,11 @@ form_loader = FormGenerator(app, form_template_path)
 form_loader.load_forms()
 ```
 
-You can then call the `load_forms` function from within a Jinja template. Providing a path for the `form-data.json` (required) and a formId (optional):
+You can then call the `load_forms` function from within a Jinja template. Providing a path for the `form-data.json` (required), a formId (optional) and isModal (optional):
 
 ```
 {{ load_form('/aws', 1234) | safe }}
+{{ load_form('/aws', 1234, true) | safe }}
 ```
 
 See the [full guide](https://webteam.canonical.com/practices/automated-form-builder) for more information.
