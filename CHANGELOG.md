@@ -1,3 +1,7 @@
+## [2.1.0] - 2025-11-18
+### Added
+- Add isModal argument to load_form, defaulting to None. When isModal is None, use the value from the JSON; otherwise, override with the provided boolean.
+
 ## [2.0.1] - 2025-05-26
 ### Added
 - Testing for app.py
