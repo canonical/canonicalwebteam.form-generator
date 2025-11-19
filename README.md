@@ -20,7 +20,8 @@ You can then call the `load_forms` function from within a Jinja template. Provid
 
 ```
 {{ load_form('/aws', 1234) | safe }}
-{{ load_form('/aws', 1234, true) | safe }}
+{{ load_form('/aws', 1234, True) | safe }}
+{{ load_form('/aws', isModal=True) | safe }}
 ```
 
 See the [full guide](https://webteam.canonical.com/practices/automated-form-builder) for more information.
