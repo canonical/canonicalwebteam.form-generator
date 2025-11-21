@@ -4,17 +4,18 @@ on:
   push:
     branches:
       - main
-    paths:
-      - setup.py
 
 jobs:
   create-release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Extract version
+      - name: Get version number from setup.py
         id: version
-        run: echo "##[set-output name=version;]"$(grep '^[[:blank:]]*version' setup.py | cut -d'"' -f 2)
+        shell: bash
+        run: |
+          set -e
+          echo "version=$(grep '^[[:blank:]]*version' setup.py | cut -d'"' -f 2)" >> "$GITHUB_OUTPUT"
       - uses: release-drafter/release-drafter@v6
         with:
           tag: "${{ steps.version.outputs.version }}"
