@@ -80,6 +80,7 @@ class FormGenerator:
                         form["templatePath"]
                     ),
                     "is_child": True,
+                    "parent_path": path,
                 }
 
     def load_form(
@@ -101,10 +102,12 @@ class FormGenerator:
 
         is_child = form_info.get("is_child", False)
 
-        form_json = self._load_form_json(form_info["file_path"]).get(form_path)
+        # Use parent_path for child forms, otherwise use form_path
+        lookup_path = form_info.get("parent_path", form_path)
+        form_json = self._load_form_json(form_info["file_path"]).get(lookup_path)
         if not form_json:
             abort(
-                404, description=f"Form data not found for path: {form_path}"
+                404, description=f"Form data not found for path: {lookup_path}"
             )
 
         try:
