@@ -84,14 +84,28 @@ class FormGenerator:
                 }
 
     def load_form(
-        self, form_path: Path, formId: int = None, isModal: bool = None
+        self,
+        form_path: Path,
+        formId: int = None,
+        isModal: bool = None,
+        title: str = None,
+        introText: str = None,
+        returnUrl: str = None,
+        lpUrl: str = None,
     ) -> str:
         """
-        Jinja function that return a html string form.
+        Jinja function that returns an HTML string form.
 
         :param form_path: The path to the parent form
+        :param formId: Marketo ID for the form (optional)
+        :param isModal: boolean to determine if form is a modal (optional)
+        :param title: Title of form (optional)
+        :param introText: Form description (optional)
+        :param returnUrl: Return URL on form submission (optional)
+        :param lpUrl: Landing page URL (optional)
         :return: HTML form
-        :usage: {{ load_form('/aws') }}
+        :usage: {{ load_form('/aws', title='Talk to our experts',
+            returnUrl='/contact#contact-form-success') }}
         """
         form_info = self.form_metadata.get(form_path)
         if form_info is None:
@@ -113,10 +127,24 @@ class FormGenerator:
 
         try:
             is_modal = form_json.get("isModal") if isModal is None else isModal
+
+            # Start with the base formData from JSON
+            form_data = form_json.get("formData", {}).copy()
+
+            # Override with provided parameters if they are not None
+            if title is not None:
+                form_data["title"] = title
+            if introText is not None:
+                form_data["introText"] = introText
+            if returnUrl is not None:
+                form_data["returnUrl"] = returnUrl
+            if lpUrl is not None:
+                form_data["lpUrl"] = lpUrl
+
             return render_template(
                 self.form_template_path,
                 fieldsets=form_json["fieldsets"],
-                formData=form_json["formData"],
+                formData=form_data,
                 isModal=is_modal,
                 modalId=form_json.get("modalId"),
                 path=form_path if is_child else None,
