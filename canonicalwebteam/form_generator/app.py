@@ -104,9 +104,8 @@ class FormGenerator:
 
         # Use parent_path for child forms, otherwise use form_path
         lookup_path = form_info.get("parent_path", form_path)
-        form_json = self._load_form_json(
-            form_info["file_path"]
-        ).get(lookup_path)
+        loaded_form_json = self._load_form_json(form_info["file_path"])
+        form_json = loaded_form_json.get(lookup_path)
         if not form_json:
             abort(
                 404, description=f"Form data not found for path: {lookup_path}"
