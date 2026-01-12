@@ -153,9 +153,9 @@ class FormGenerator:
                 formData=form_data,
                 isModal=is_modal,
                 modalId=form_json.get("modalId"),
-                path=form_path if is_child else None,
+                parentPath=form_path if is_child else None,
                 formId=formId,
-                formPath=form_path,
+                path=form_path,
             )
         except Exception as e:
             abort(
