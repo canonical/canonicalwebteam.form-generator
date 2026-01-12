@@ -92,6 +92,8 @@ class FormGenerator:
         introText: str = None,
         returnUrl: str = None,
         lpUrl: str = None,
+        lpId: int = None,
+        product: str = None,
     ) -> str:
         """
         Jinja function that returns an HTML string form.
@@ -103,6 +105,8 @@ class FormGenerator:
         :param introText: Form description (optional)
         :param returnUrl: Return URL on form submission (optional)
         :param lpUrl: Landing page URL (optional)
+        :param lpUrl: Landing page ID (optional)
+        :param product: Product name (optional)
         :return: HTML form
         :usage: {{ load_form('/aws', title='Talk to our experts',
             returnUrl='/contact#contact-form-success') }}
@@ -132,14 +136,16 @@ class FormGenerator:
             form_data = form_json.get("formData", {}).copy()
 
             # Override with provided parameters if they are not None
-            if title is not None:
-                form_data["title"] = title
-            if introText is not None:
-                form_data["introText"] = introText
-            if returnUrl is not None:
-                form_data["returnUrl"] = returnUrl
-            if lpUrl is not None:
-                form_data["lpUrl"] = lpUrl
+            for key, value in [
+                ("title", title),
+                ("introText", introText),
+                ("returnUrl", returnUrl),
+                ("lpUrl", lpUrl),
+                ("lpId", lpId),
+                ("product", product),
+            ]:
+                if value is not None:
+                    form_data[key] = value
 
             return render_template(
                 self.form_template_path,
