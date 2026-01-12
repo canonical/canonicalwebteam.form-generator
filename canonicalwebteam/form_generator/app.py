@@ -105,7 +105,7 @@ class FormGenerator:
         :param introText: Form description (optional)
         :param returnUrl: Return URL on form submission (optional)
         :param lpUrl: Landing page URL (optional)
-        :param lpUrl: Landing page ID (optional)
+        :param lpId: Landing page ID (optional)
         :param product: Product name (optional)
         :return: HTML form
         :usage: {{ load_form('/aws', title='Talk to our experts',
