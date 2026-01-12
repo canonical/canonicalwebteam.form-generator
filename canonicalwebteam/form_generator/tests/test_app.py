@@ -185,6 +185,50 @@ class TestFormGenerator(unittest.TestCase):
         self.assertEqual(kwargs["formData"], {"title": "Test Form"})
         self.assertIsNone(kwargs["path"])
 
+    @patch("canonicalwebteam.form_generator.app.render_template")
+    def test_load_child_form(self, mock_render_template):
+        """
+        Test loading a child form using parent's form data.
+        """
+        form_generator = FormGenerator(self.app, self.form_template_path)
+
+        # Mock the JSON data structure (parent path is the key)
+        form_generator._load_form_json = MagicMock(
+            return_value={
+                "/parent": {
+                    "fieldsets": [{"fields": [{"name": "test"}]}],
+                    "formData": {"title": "Parent Form"},
+                    "isModal": False,
+                }
+            }
+        )
+
+        # Metadata for child includes parent_path
+        form_generator.form_metadata = {
+            "/parent": {
+                "file_path": "path/to/form.json",
+                "template": "test-template",
+            },
+            "/child": {
+                "file_path": "path/to/form.json",
+                "template": "test-template",
+                "is_child": True,
+                "parent_path": "/parent",
+            },
+        }
+
+        # Load the child form
+        form_generator.load_form("/child")
+
+        # Verify render_template was called
+        mock_render_template.assert_called_once()
+        args, kwargs = mock_render_template.call_args
+        self.assertEqual(args[0], self.form_template_path)
+        self.assertEqual(kwargs["fieldsets"], [{"fields": [{"name": "test"}]}])
+        self.assertEqual(kwargs["formData"], {"title": "Parent Form"})
+        self.assertEqual(kwargs["path"], "/child")
+        self.assertFalse(kwargs["isModal"])
+
     @patch("canonicalwebteam.form_generator.app.abort")
     def test_load_form_missing_form_json(self, mock_abort):
         """
@@ -239,6 +283,9 @@ class TestFormGenerator(unittest.TestCase):
 
         self.assertIn("/child", form_generator.form_metadata)
         self.assertTrue(form_generator.form_metadata["/child"]["is_child"])
+        self.assertEqual(
+            form_generator.form_metadata["/child"]["parent_path"], "/test"
+        )
 
     def test_process_child_path(self):
         """
