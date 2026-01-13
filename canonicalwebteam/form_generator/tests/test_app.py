@@ -184,6 +184,7 @@ class TestFormGenerator(unittest.TestCase):
         self.assertEqual(kwargs["fieldsets"], [{"fields": []}])
         self.assertEqual(kwargs["formData"], {"title": "Test Form"})
         self.assertIsNone(kwargs["path"])
+        self.assertEqual(kwargs["formPath"], "/test")
 
     @patch("canonicalwebteam.form_generator.app.render_template")
     def test_load_child_form(self, mock_render_template):

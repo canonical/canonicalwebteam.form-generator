@@ -1,3 +1,7 @@
+## [2.2.0] - 2026-01-12
+### Added
+- Add customizable formData parameters to load_form: title, introText, returnUrl, and lpUrl. These optional parameters override the values from form-data.json when provided.
+
 ## [2.1.1] - 2026-01-12
 ### Fixed
 - Fixed the issue of loading of forms using the paths in `childrenPaths` not working
